@@ -34,12 +34,14 @@ class OverlayView(context: Context) : View(context) {
 
     private val laid = ArrayList<Laid>()
     private val location = IntArray(2)
-    private val padH = dp(3f)
-    private val padV = dp(1.5f)
-    private val corner = dp(5f)
+    private val padH = dp(2f)
+    private val padV = dp(0.5f)
+    private val corner = dp(4f)
     private val gap = dp(2f)
-    private val absoluteMin = sp(6f)
-    private val absoluteMax = sp(28f)
+
+    /** 이보다 작아져야 할 때만 … 으로 자른다 */
+    private val floorSize = sp(5f)
+    private val absoluteMax = sp(26f)
 
     private val fillPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = Color.parseColor("#FFF2F8")
@@ -65,7 +67,7 @@ class OverlayView(context: Context) : View(context) {
         invalidate()
     }
 
-    /** @param textScale 사용자 설정 글씨 배율 (작게 0.85 / 보통 1 / 크게 1.15) */
+    /** @param textScale 사용자 설정 글씨 배율 (작게 / 보통 / 크게) */
     fun setItems(items: List<Item>, screenW: Int, screenH: Int, textScale: Float) {
         laid.clear()
         val sw = if (screenW > 0) screenW.toFloat() else 100000f
@@ -81,39 +83,32 @@ class OverlayView(context: Context) : View(context) {
             for (j in originals.indices) if (j != index) obstacles.add(originals[j])
             obstacles.addAll(placed)
 
-            // 원래 글자 크기쯤을 목표로, 그보다 크게는 안 함
+            // 원래 글자보다 살짝 작은 크기를 최대로 잡는다
             val lineH = r.height() / max(1, item.lineCount)
-            val target = (lineH * 0.78f * textScale).coerceIn(absoluteMin, absoluteMax)
-            val minSize = max(absoluteMin, target * 0.55f)
-            val goodEnough = target * 0.9f
+            val target = (lineH * 0.7f * textScale).coerceIn(floorSize, absoluteMax)
+            // 이 크기까지는 원래 자리 안에서 줄여서 해결 (상자를 넓히지 않음)
+            val comfortable = max(floorSize, target * 0.6f)
 
+            // 1) 원래 자리 안
             var box = RectF(r)
-            var fit = fit(item.text, box, minSize, target)
-
-            if (!fit.fits || fit.size < goodEnough) {
-                // 옆 빈 공간으로 넓혀 보기 (최대 원래 폭만큼 더)
-                val wide = widen(box, obstacles, sw, r.width())
-                if (wide.width() > box.width() + 1f) {
-                    val f = fit(item.text, wide, minSize, target)
-                    if (better(f, fit)) {
-                        box = wide
-                        fit = f
-                    }
-                }
+            var fit = fit(item.text, box, comfortable, target)
+            // 2) 옆 빈 공간까지 (최대 원래 폭만큼 더)
+            if (!fit.fits) {
+                box = widen(box, obstacles, sw, r.width())
+                fit = fit(item.text, box, comfortable, target)
             }
-            if (!fit.fits || fit.size < goodEnough) {
-                // 아래 빈 공간으로 늘려 보기 (최대 원래 높이의 1.5배 더)
-                val tall = growDown(box, obstacles, sh, r.height() * 1.5f)
-                if (tall.height() > box.height() + 1f) {
-                    val f = fit(item.text, tall, minSize, target)
-                    if (better(f, fit)) {
-                        box = tall
-                        fit = f
-                    }
-                }
+            // 3) 아래 빈 공간까지 (최대 원래 높이의 1.5배 더)
+            if (!fit.fits) {
+                box = growDown(box, obstacles, sh, r.height() * 1.5f)
+                fit = fit(item.text, box, comfortable, target)
             }
+            // 4) 그래도 안 되면 아주 작은 글씨까지 줄인다
+            if (!fit.fits) {
+                fit = fit(item.text, box, floorSize, comfortable)
+            }
+            // 5) 최소 크기로도 안 되는 아주 긴 문장만 … 으로 자른다
+            val layout = if (fit.fits) fit.layout else ellipsized(item.text, box, floorSize)
 
-            val layout = if (fit.fits) fit.layout else ellipsized(item.text, box, minSize)
             // 늘린 상자는 실제로 쓰는 높이까지만 (원래 자리보다 작아지진 않게)
             val usedH = max(r.height(), layout.height + padV * 2)
             val finalBox = RectF(box.left, box.top, box.right, min(box.bottom, box.top + usedH))
@@ -170,11 +165,6 @@ class OverlayView(context: Context) : View(context) {
         if (found != null) return Fit(found, bestSize, true)
         val smallest = makeLayout(text, minSize, innerW)
         return Fit(smallest, minSize, smallest.height <= innerH)
-    }
-
-    private fun better(candidate: Fit, current: Fit): Boolean {
-        if (candidate.fits != current.fits) return candidate.fits
-        return candidate.size > current.size + 0.5f
     }
 
     /** 같은 높이대에 다른 글자가 없는 만큼만 좌우로 넓힌다 */

@@ -58,7 +58,7 @@ class Prefs(context: Context) {
 
     val textScale: Float
         get() = when (textSizeLevel) {
-            0 -> 0.85f
+            0 -> 0.8f
             2 -> 1.15f
             else -> 1f
         }
