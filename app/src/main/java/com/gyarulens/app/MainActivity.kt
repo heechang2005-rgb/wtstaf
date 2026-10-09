@@ -40,6 +40,7 @@ class MainActivity : Activity() {
     private lateinit var modelInput: EditText
     private lateinit var intensityGroup: RadioGroup
     private lateinit var styleInput: EditText
+    private lateinit var textSizeGroup: RadioGroup
     private lateinit var scriptGroup: RadioGroup
     private lateinit var intervalGroup: RadioGroup
     private lateinit var hideCheck: CheckBox
@@ -47,6 +48,7 @@ class MainActivity : Activity() {
 
     private val providerIds = HashMap<String, Int>()
     private val intensityIds = HashMap<Int, Int>()
+    private val textSizeIds = HashMap<Int, Int>()
     private val scriptIds = HashMap<String, Int>()
     private val intervalIds = HashMap<Int, Int>()
     private var shownProvider = Prefs.PROVIDER_GEMINI
@@ -112,6 +114,13 @@ class MainActivity : Activity() {
         root.addView(label("말투 추가 주문 (선택)"))
         styleInput = input("예: 부산 사투리 섞어 줘 / 이모지는 빼 줘", secret = false, multiLine = true)
         root.addView(styleInput)
+        root.addView(label("번역 글씨 크기"))
+        textSizeGroup = radioGroup(horizontal = true)
+        textSizeIds[0] = addRadio(textSizeGroup, "작게")
+        textSizeIds[1] = addRadio(textSizeGroup, "보통")
+        textSizeIds[2] = addRadio(textSizeGroup, "크게")
+        root.addView(textSizeGroup)
+        root.addView(hint("원래 글자 크기에 맞춰 자동으로 줄어들어요. 그래도 크거나 작으면 여기서 조절하세요."))
 
         root.addView(header("4. 화면 글자 언어"))
         scriptGroup = radioGroup(horizontal = true)
@@ -255,6 +264,7 @@ class MainActivity : Activity() {
         providerIds[shownProvider]?.let { providerGroup.check(it) }
         loadKeyAndModel(shownProvider)
         intensityIds[prefs.intensity]?.let { intensityGroup.check(it) }
+        (textSizeIds[prefs.textSizeLevel] ?: textSizeIds[1])?.let { textSizeGroup.check(it) }
         scriptIds[prefs.ocrScript]?.let { scriptGroup.check(it) }
         (intervalIds[prefs.autoIntervalSec] ?: intervalIds[3])?.let { intervalGroup.check(it) }
         styleInput.setText(prefs.customStyle)
@@ -268,6 +278,7 @@ class MainActivity : Activity() {
         saveKeyAndModel(shownProvider)
         prefs.provider = shownProvider
         prefs.intensity = keyOf(intensityIds, intensityGroup.checkedRadioButtonId) ?: 1
+        prefs.textSizeLevel = keyOf(textSizeIds, textSizeGroup.checkedRadioButtonId) ?: 1
         prefs.ocrScript = keyOf(scriptIds, scriptGroup.checkedRadioButtonId) ?: "ko"
         prefs.autoIntervalSec = keyOf(intervalIds, intervalGroup.checkedRadioButtonId) ?: 3
         prefs.customStyle = styleInput.text.toString().trim()

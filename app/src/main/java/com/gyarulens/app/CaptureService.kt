@@ -593,7 +593,7 @@ class CaptureService : Service() {
         updateBubble()
         if (gen != generation) return // 그사이 사용자가 지웠거나 실시간 모드를 껐음
         val size = realSize()
-        ov.setItems(items, size.x, size.y)
+        ov.setItems(items, size.x, size.y, prefs.textScale)
         refSig = sig
         if (items.isEmpty() && !autoMode) toast(emptyMessage)
     }

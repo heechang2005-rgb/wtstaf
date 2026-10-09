@@ -51,6 +51,18 @@ class Prefs(context: Context) {
         get() = sp.getBoolean(K_HIDE_WHILE_CAPTURE, true)
         set(value) = sp.edit().putBoolean(K_HIDE_WHILE_CAPTURE, value).apply()
 
+    /** 번역 글씨 크기: 0 = 작게, 1 = 보통, 2 = 크게 */
+    var textSizeLevel: Int
+        get() = sp.getInt(K_TEXT_SIZE, 1)
+        set(value) = sp.edit().putInt(K_TEXT_SIZE, value).apply()
+
+    val textScale: Float
+        get() = when (textSizeLevel) {
+            0 -> 0.85f
+            2 -> 1.15f
+            else -> 1f
+        }
+
     val apiKey: String
         get() = if (provider == PROVIDER_CLAUDE) claudeKey else geminiKey
 
@@ -74,5 +86,6 @@ class Prefs(context: Context) {
         private const val K_OCR_SCRIPT = "ocr_script"
         private const val K_AUTO_INTERVAL = "auto_interval"
         private const val K_HIDE_WHILE_CAPTURE = "hide_while_capture"
+        private const val K_TEXT_SIZE = "text_size_level"
     }
 }

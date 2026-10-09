@@ -11,8 +11,8 @@ android {
         applicationId = "com.gyarulens.app"
         minSdk = 26
         targetSdk = 34
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 2
+        versionName = "1.1"
 
         // 휴대폰용 ARM만 넣어서 APK 크기를 줄임
         ndk {
